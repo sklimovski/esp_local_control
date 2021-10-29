@@ -46,18 +46,22 @@ class LocalControl {
     _clientStart = _client.start();
 
     _checkingTimer = Timer.periodic(scanningPeriod, (timer) async {
-      final tmpIp = await _getDeviceIP();
-      //print(tmpIp);
-      if (tmpIp != null) {
-        _ipAndPort = tmpIp;
+      try {
+        final tmpIp = await _getDeviceIP();
+        //print(tmpIp);
+        if (tmpIp != null) {
+          _ipAndPort = tmpIp;
 
-        if (stopScanOnSuccess) {
-          timer?.cancel();
-          _client.stop();
+          if (stopScanOnSuccess) {
+            timer?.cancel();
+            _client.stop();
+          }
+          //print(ipAndPort);
         }
+      } catch (e) {
+        _client.stop();
+        throw (e);
       }
-
-      //print(ipAndPort);
     });
   }
 
@@ -78,7 +82,8 @@ class LocalControl {
         await for (SrvResourceRecord srv in _client.lookup<SrvResourceRecord>(
             ResourceRecordQuery.service(ptr.domainName))) {
           if (id == srv.target.split('.').first) {
-            //print('ESP Local found at ${srv.target}:${srv.port} for "${ptr.domainName}".');
+            print(
+                'ESP Local found at ${srv.target}:${srv.port} for "${ptr.domainName}".');
             await for (IPAddressResourceRecord ip
                 in _client.lookup<IPAddressResourceRecord>(
                     ResourceRecordQuery.addressIPv4(srv.target))) {
@@ -131,16 +136,21 @@ class LocalControl {
   /// Throws a `LocalControlUnavailable` exception if the device address
   /// if not known.
   Future<Map<String, dynamic>> getParamsValues(
-      [bool forceDeviceCheck = false]) async {
-    if (forceDeviceCheck) {
-      final tmpIp = await _getDeviceIP();
-      if (tmpIp != null) {
-        _ipAndPort = tmpIp;
+      [bool forceDeviceCheck = true]) async {
+    try {
+      if (forceDeviceCheck) {
+        final tmpIp = await _getDeviceIP();
+        if (tmpIp != null) {
+          _ipAndPort = tmpIp;
+        }
       }
-    }
 
-    if (_ipAndPort == null) {
-      throw LocalControlUnavailable();
+      if (_ipAndPort == null) {
+        throw LocalControlUnavailable();
+      }
+    } catch (e) {
+      _client.stop();
+      rethrow;
     }
 
     return _apiManager.getParamsValues(_ipAndPort.baseUrl);
