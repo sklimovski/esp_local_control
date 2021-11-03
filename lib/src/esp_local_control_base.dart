@@ -43,7 +43,8 @@ class LocalControl {
       : assert(id != null),
         assert(scanningPeriod != null),
         assert(stopScanOnSuccess != null) {
-    _clientStart = _client.start();
+    //changed
+    _clientStart = _client.start(mDnsPort: 8080);
 
     _checkingTimer = Timer.periodic(scanningPeriod, (timer) async {
       try {
@@ -81,6 +82,7 @@ class LocalControl {
           ResourceRecordQuery.serverPointer(_serviceType))) {
         await for (SrvResourceRecord srv in _client.lookup<SrvResourceRecord>(
             ResourceRecordQuery.service(ptr.domainName))) {
+          print(srv.target);
           if (id == srv.target.split('.').first) {
             print(
                 'ESP Local found at ${srv.target}:${srv.port} for "${ptr.domainName}".');
