@@ -5,6 +5,29 @@ import 'package:esp_rainmaker_local_control/src/mDNS_api_manager.dart';
 import 'package:meta/meta.dart';
 import 'package:multicast_dns/multicast_dns.dart';
 
+@immutable
+class IPAndPort {
+  /// The IP address of the device.
+  final String ip;
+
+  /// The port number of the device.
+  final int port;
+
+  IPAndPort({
+    @required this.ip,
+    @required this.port,
+  });
+
+  String get baseUrl {
+    return 'http://$ip:$port';
+  }
+
+  @override
+  String toString() {
+    return 'IPAndPort{IP: $ip, Port: $port}';
+  }
+}
+
 /// Entry point for local control.
 class LocalControl {
   static const String _serviceType = '_esp_local_ctrl._tcp';
@@ -18,7 +41,7 @@ class LocalControl {
   );
 
   /// Rainmaker ID of the device to locally control.
-  final String id;
+  //final String id;
 
   /// The IP address and port number of the device once
   /// discovered.
@@ -37,6 +60,7 @@ class LocalControl {
   /// The [scanningPeriod] is how often the service will try to find
   /// the Rainmaker device. If [stopScanOnSuccess] is true, the polling
   /// will stop upon first successfully finding the IP and port.
+  /*
   LocalControl(this.id,
       [Duration scanningPeriod = const Duration(seconds: 15),
       bool stopScanOnSuccess = true])
@@ -66,6 +90,13 @@ class LocalControl {
     });
   }
 
+   */
+
+  // My own constructor for implementing local control minus the discovery
+  LocalControl(IPAndPort ipAndPort) {
+    _ipAndPort = ipAndPort;
+  }
+
   /// Releases resources used by this object.
   void dispose() {
     _checkingTimer?.cancel();
@@ -74,6 +105,7 @@ class LocalControl {
     _apiManager.dispose();
   }
 
+  /*
   Future<IPAndPort> _getDeviceIP() async {
     try {
       await _clientStart;
@@ -105,6 +137,8 @@ class LocalControl {
     return null;
   }
 
+   */
+
   /// Obtains the node configuration.
   ///
   /// If [forceDeviceCheck] is set to true the function will forcibly poll
@@ -115,12 +149,16 @@ class LocalControl {
   /// if not known.
   Future<Map<String, dynamic>> getNodeDetails(
       [bool forceDeviceCheck = false]) async {
+    /*
     if (forceDeviceCheck) {
+      // changed bc we parse in ipandport
       final tmpIp = await _getDeviceIP();
       if (tmpIp != null) {
         _ipAndPort = tmpIp;
       }
     }
+
+       */
 
     if (_ipAndPort == null) {
       throw LocalControlUnavailable();
@@ -140,12 +178,15 @@ class LocalControl {
   Future<Map<String, dynamic>> getParamsValues(
       [bool forceDeviceCheck = true]) async {
     try {
+      /*
       if (forceDeviceCheck) {
         final tmpIp = await _getDeviceIP();
         if (tmpIp != null) {
           _ipAndPort = tmpIp;
         }
       }
+
+       */
 
       if (_ipAndPort == null) {
         throw LocalControlUnavailable();
@@ -168,6 +209,7 @@ class LocalControl {
   /// if not known.
   Future<void> updateParamValue(Map<String, dynamic> body,
       [bool forceDeviceCheck = false]) async {
+    /*
     if (forceDeviceCheck) {
       final tmpIp = await _getDeviceIP();
       if (tmpIp != null) {
@@ -175,34 +217,13 @@ class LocalControl {
       }
     }
 
+     */
+
     if (_ipAndPort == null) {
       throw LocalControlUnavailable();
     }
 
     return _apiManager.updateParamValue(_ipAndPort.baseUrl, body);
-  }
-}
-
-@immutable
-class IPAndPort {
-  /// The IP address of the device.
-  final String ip;
-
-  /// The port number of the device.
-  final int port;
-
-  IPAndPort({
-    @required this.ip,
-    @required this.port,
-  });
-
-  String get baseUrl {
-    return 'http://$ip:$port';
-  }
-
-  @override
-  String toString() {
-    return 'IPAndPort{IP: $ip, Port: $port}';
   }
 }
 
